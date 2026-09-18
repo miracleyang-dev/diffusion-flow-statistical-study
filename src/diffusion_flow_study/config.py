@@ -19,3 +19,6 @@ class ExperimentConfig:
     beta_min: float = 0.1
     beta_max: float = 20.0
     output_dir: str = "artifacts/gaussian_mixture"
+    dataset: str = "gaussian_mixture"
+    data_dir: str = "data/mnist"
+    metric_sample_count: int | None = None

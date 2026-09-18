@@ -14,9 +14,17 @@ BatchSampler = Callable[[int], Tensor]
 class GenerativeMethod(ABC):
     """Common training interface for the controlled benchmark."""
 
-    def __init__(self, model: nn.Module, device: str | torch.device = "cpu") -> None:
+    def __init__(
+        self,
+        model: nn.Module,
+        device: str | torch.device = "cpu",
+        data_dim: int = 2,
+    ) -> None:
+        if data_dim <= 0:
+            raise ValueError("data_dim must be positive")
         self.model = model.to(device)
         self.device = torch.device(device)
+        self.data_dim = data_dim
 
     @abstractmethod
     def loss(self, clean: Tensor) -> Tensor:
@@ -63,8 +71,9 @@ class DDPM(GenerativeMethod):
         beta_start: float = 1e-4,
         beta_end: float = 2e-2,
         device: str | torch.device = "cpu",
+        data_dim: int = 2,
     ) -> None:
-        super().__init__(model, device)
+        super().__init__(model, device, data_dim)
         self.diffusion_steps = diffusion_steps
         self.betas = torch.linspace(beta_start, beta_end, diffusion_steps, device=self.device)
         self.alphas = 1.0 - self.betas
@@ -84,7 +93,7 @@ class DDPM(GenerativeMethod):
         if steps != self.diffusion_steps:
             raise ValueError(f"DDPM requires steps={self.diffusion_steps}; got {steps}")
         self.model.eval()
-        x = torch.randn(n, 2, device=self.device, generator=generator)
+        x = torch.randn(n, self.data_dim, device=self.device, generator=generator)
         for index in reversed(range(self.diffusion_steps)):
             t = torch.full((n,), index / (self.diffusion_steps - 1), device=self.device)
             predicted_noise = self.model(x, t)
@@ -111,8 +120,9 @@ class VPScoreSDE(GenerativeMethod):
         beta_min: float = 0.1,
         beta_max: float = 20.0,
         device: str | torch.device = "cpu",
+        data_dim: int = 2,
     ) -> None:
-        super().__init__(model, device)
+        super().__init__(model, device, data_dim)
         self.beta_min = beta_min
         self.beta_max = beta_max
 
@@ -134,7 +144,7 @@ class VPScoreSDE(GenerativeMethod):
     @torch.no_grad()
     def sample(self, n: int, steps: int, generator: torch.Generator) -> Tensor:
         self.model.eval()
-        x = torch.randn(n, 2, device=self.device, generator=generator)
+        x = torch.randn(n, self.data_dim, device=self.device, generator=generator)
         dt = (1.0 - 1e-3) / steps
         for index in range(steps):
             time = 1.0 - index * dt
@@ -149,6 +159,14 @@ class VPScoreSDE(GenerativeMethod):
 class FlowMatching(GenerativeMethod):
     """Conditional flow matching on straight Gaussian-to-data paths."""
 
+    def __init__(
+        self,
+        model: nn.Module,
+        device: str | torch.device = "cpu",
+        data_dim: int = 2,
+    ) -> None:
+        super().__init__(model, device, data_dim)
+
     def loss(self, clean: Tensor) -> Tensor:
         n = clean.shape[0]
         source = torch.randn_like(clean)
@@ -160,7 +178,7 @@ class FlowMatching(GenerativeMethod):
     @torch.no_grad()
     def sample(self, n: int, steps: int, generator: torch.Generator) -> Tensor:
         self.model.eval()
-        x = torch.randn(n, 2, device=self.device, generator=generator)
+        x = torch.randn(n, self.data_dim, device=self.device, generator=generator)
         dt = 1.0 / steps
         for index in range(steps):
             t = torch.full((n,), (index + 0.5) * dt, device=self.device)

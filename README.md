@@ -6,7 +6,7 @@ sample quality, computational cost, and stability when architecture, data, and
 training budget are held fixed.
 
 The first milestone is a fully reproducible two-dimensional benchmark on an
-eight-mode Gaussian mixture. Planned extensions cover Swiss roll, MNIST,
+eight-mode Gaussian mixture. Further extensions cover MNIST image modeling,
 noise-schedule ablations, low-dimensional structure, and reward-guided
 sampling. The accompanying technical note will turn the results into a compact
 6–10 page statistical comparison rather than a collection of isolated demos.
@@ -28,6 +28,8 @@ MNIST、噪声调度消融、低维结构与 reward-guided sampling。配套 tec
 - RBF MMD, sliced Wasserstein distance, sampling steps, training/sampling wall time,
   loss traces, and explicit non-finite-loss checks.
 - Reproducible JSON results and two publication-ready figures.
+- A dimension-generalized benchmark path for the three-dimensional Swiss roll.
+- An official IDX MNIST loader and flattened 784-dimensional baseline.
 
 - 使用线性离散方差调度和祖先采样的 **DDPM**。
 - 使用连续时间去噪 score matching 和反向 SDE 采样器的 **VP Score-SDE**。
@@ -55,6 +57,26 @@ uv run diffusion-flow-study \
   --sample-count 500 \
   --sample-steps 50 \
   --ddpm-steps 50
+```
+
+Run the next benchmark dataset, the three-dimensional Swiss roll:
+
+```bash
+uv run diffusion-flow-study \
+  --dataset swiss_roll \
+  --train-steps 200 \
+  --sample-count 500 \
+  --sample-steps 50 \
+  --ddpm-steps 50
+```
+
+Run the MNIST baseline. The first run downloads the official IDX files to
+`data/mnist/`:
+
+```bash
+uv run diffusion-flow-study \
+  --dataset mnist \
+  --metric-sample-count 512
 ```
 
 The run creates the following outputs / 实验将生成以下文件：
@@ -121,7 +143,7 @@ Score-SDE 和 Flow Matching 则使用独立的数值积分预算。因此，质�
 src/diffusion_flow_study/
 ├── cli.py            # command-line entry point / 命令行入口
 ├── config.py         # experiment configuration / 实验配置
-├── data.py           # synthetic target distributions / 合成目标分布
+├── data.py           # synthetic and MNIST target distributions / 合成与 MNIST 目标分布
 ├── experiment.py     # training, evaluation, JSON, and figures / 训练、评估与制图
 ├── methods.py        # DDPM, Score-SDE, and Flow Matching / 三类生成方法
 ├── metrics.py        # MMD and sliced Wasserstein / 统计指标
@@ -137,8 +159,9 @@ tests/
 - [x] Two-dimensional Gaussian-mixture MVP.
 - [ ] Multi-seed runs with confidence intervals and failure rates.
 - [ ] Quality-versus-sampling-step Pareto curves.
-- [ ] Swiss-roll geometry and intrinsic-dimension diagnostics.
+- [x] Swiss-roll dataset path; intrinsic-dimension diagnostics remain open.
 - [ ] Linear, cosine, and learned/noise-schedule ablations.
+- [x] MNIST flattened-vector data path and baseline results.
 - [ ] MNIST convolutional backbone with FID/KID-style evaluation.
 - [ ] Simple reward-guided sampling and reward–fidelity trade-off curves.
 - [ ] Final 6–10 page technical note with frozen configurations and results.
@@ -146,8 +169,9 @@ tests/
 - [x] 二维高斯混合 MVP。
 - [ ] 多随机种子实验、置信区间与失败率。
 - [ ] 质量–采样步数 Pareto 曲线。
-- [ ] Swiss-roll 几何结构与内在维度诊断。
+- [x] Swiss-roll 数据路径；内在维度诊断仍待补充。
 - [ ] 线性、余弦及可学习噪声调度消融。
+- [x] MNIST 展平向量数据路径与基线结果。
 - [ ] MNIST 卷积主干与 FID/KID 风格评估。
 - [ ] 简单 reward-guided sampling 与 reward–fidelity 权衡曲线。
 - [ ] 使用冻结配置和最终结果完成 6–10 页 technical note。
